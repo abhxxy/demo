@@ -108,6 +108,10 @@ function formatOptions(options, title) {
 }
 
 async function sendCatalog(chat, tileType) {
+    console.log(`\n=== PDF CATALOG SEND ATTEMPT ===`);
+    console.log(`Tile Type: ${tileType}`);
+    console.log(`Current Working Directory: ${process.cwd()}`);
+
     const catalogFiles = {
         'floor': './catalogs/Floor Tiles.pdf',
         'wall': './catalogs/Wall Tiles.pdf',
@@ -115,21 +119,70 @@ async function sendCatalog(chat, tileType) {
     };
 
     const catalogPath = catalogFiles[tileType];
+    console.log(`Catalog Path: ${catalogPath}`);
+
+    if (!catalogPath) {
+        console.log(`ERROR: No catalog path defined for tile type: ${tileType}`);
+        await chat.sendMessage('Catalog will be shared by our team shortly.');
+        return;
+    }
+
+    const absolutePath = path.resolve(catalogPath);
+    console.log(`Absolute Path: ${absolutePath}`);
+
+    const fileExists = fs.existsSync(catalogPath);
+    console.log(`File Exists: ${fileExists}`);
+
+    if (fileExists) {
+        const stats = fs.statSync(catalogPath);
+        console.log(`File Size: ${stats.size} bytes (${(stats.size / 1024 / 1024).toFixed(2)} MB)`);
+        console.log(`File Permissions: ${stats.mode}`);
+        console.log(`Is File: ${stats.isFile()}`);
+    }
 
     if (catalogPath && fs.existsSync(catalogPath)) {
         try {
             const catalogName = tileType.charAt(0).toUpperCase() + tileType.slice(1);
+            console.log(`Sending preliminary message for ${catalogName} catalog...`);
             await chat.sendMessage(`📥 Here is our latest ${catalogName} Tiles Catalog:\n⬇️ Downloading...`);
+            console.log(`Preliminary message sent successfully`);
 
+            console.log(`Creating MessageMedia from file path...`);
             const media = MessageMedia.fromFilePath(catalogPath);
+            console.log(`MessageMedia created successfully`);
+            console.log(`Media mimetype: ${media.mimetype}`);
+            console.log(`Media filename: ${media.filename}`);
+            console.log(`Media data length: ${media.data ? media.data.length : 'No data'}`);
+
+            console.log(`Attempting to send PDF media...`);
             await chat.sendMessage(media, { caption: `${catalogName} Tiles - Full Catalog` });
+            console.log(`✅ PDF SENT SUCCESSFULLY`);
         } catch (error) {
-            console.log('Could not send PDF catalog:', error);
+            console.error(`❌ ERROR SENDING PDF CATALOG:`);
+            console.error(`Error Type: ${error.constructor.name}`);
+            console.error(`Error Message: ${error.message}`);
+            console.error(`Error Stack: ${error.stack}`);
+            console.error(`Full Error Object:`, error);
+
             await chat.sendMessage('Sorry, unable to send catalog at the moment. Our team will share it shortly.');
         }
     } else {
+        console.log(`File does not exist at path: ${catalogPath}`);
+        console.log(`Checking catalog directory...`);
+        const catalogDir = './catalogs';
+        if (fs.existsSync(catalogDir)) {
+            console.log(`Catalog directory exists. Contents:`);
+            const files = fs.readdirSync(catalogDir);
+            files.forEach(file => {
+                console.log(`  - ${file}`);
+            });
+        } else {
+            console.log(`Catalog directory does not exist: ${catalogDir}`);
+        }
+
         await chat.sendMessage('Catalog will be shared by our team shortly.');
     }
+    console.log(`=== END PDF CATALOG ATTEMPT ===\n`);
 }
 
 async function handleGreeting(chat, session) {
@@ -166,6 +219,8 @@ async function handleSizeType(message, chat, session) {
     if (choice && TILE_TYPES[choice]) {
         session.data.tileType = TILE_TYPES[choice];
 
+        console.log(`User selected tile type: ${TILE_TYPES[choice].name} (${TILE_TYPES[choice].key})`);
+        console.log(`Calling sendCatalog function...`);
         await sendCatalog(chat, TILE_TYPES[choice].key);
 
         const sizeMessage = `Kai Size ma joiye? 😊\n\n${formatOptions(SIZES, 'Please Select:')}`;

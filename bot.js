@@ -39,7 +39,8 @@ const PRODUCTS = {
 const TILE_TYPES = {
     1: { name: 'Floor Tiles', key: 'floor' },
     2: { name: 'Wall Tiles', key: 'wall' },
-    3: { name: 'Parking Tiles', key: 'parking' }
+    3: { name: 'Parking Tiles', key: 'parking' },
+    99: { name: 'Test Small PDF', key: 'test' }  // Hidden test option
 };
 
 const SIZES = {
@@ -307,7 +308,12 @@ async function handleProductSelection(message, chat, session) {
 }
 
 async function handleSizeType(message, chat, session) {
+    console.log(`\n=== handleSizeType called ===`);
+    console.log(`User input: "${message.body}"`);
+
     const choice = matchOption(message.body, TILE_TYPES);
+    console.log(`Matched choice: ${choice}`);
+    console.log(`Available TILE_TYPES:`, TILE_TYPES);
 
     if (choice && TILE_TYPES[choice]) {
         session.data.tileType = TILE_TYPES[choice];
@@ -416,6 +422,14 @@ client.on('message', async (message) => {
 
     await delay(2000);
 
+    // Quick test for PDF sending
+    if (message.body.toLowerCase() === '!testpdf') {
+        console.log('=== DIRECT PDF TEST ===');
+        await chat.sendMessage('Testing PDF sending directly...');
+        await sendCatalog(chat, 'test');
+        return;
+    }
+
     if (isCancel(message.body)) {
         await chat.sendMessage('Inquiry cancelled. Type "hi" to start a new inquiry.');
         session.step = FLOW_STEPS.GREETING;
@@ -434,15 +448,22 @@ client.on('message', async (message) => {
         return;
     }
 
+    console.log(`\n=== PROCESSING MESSAGE ===`);
+    console.log(`Session step: ${session.step}`);
+    console.log(`Message body: "${message.body}"`);
+
     try {
         switch (session.step) {
             case FLOW_STEPS.GREETING:
+                console.log(`-> Calling handleGreeting`);
                 await handleGreeting(chat, session);
                 break;
             case FLOW_STEPS.PRODUCT_SELECTION:
+                console.log(`-> Calling handleProductSelection`);
                 await handleProductSelection(message, chat, session);
                 break;
             case FLOW_STEPS.SIZE_TYPE:
+                console.log(`-> Calling handleSizeType`);
                 await handleSizeType(message, chat, session);
                 break;
             case FLOW_STEPS.QUANTITY:

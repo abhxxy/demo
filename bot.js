@@ -154,8 +154,9 @@ async function sendCatalog(chat, tileType) {
         const stats = fs.statSync(catalogPath);
         const fileSizeMB = stats.size / 1024 / 1024;
 
-        // Based on testing, WhatsApp Web.js on servers seems to hang with files > 10MB
-        const MAX_SAFE_SIZE_MB = 10;
+        // Based on testing, WhatsApp Web.js on servers seems to hang with larger files
+        // Start with 2MB limit, can be adjusted based on testing
+        const MAX_SAFE_SIZE_MB = 2;
 
         // Check if file is too large
         if (fileSizeMB > MAX_SAFE_SIZE_MB) {
@@ -446,6 +447,52 @@ client.on('message', async (message) => {
         console.log('=== TESTING FLOOR TILES PDF (12.73 MB) ===');
         await chat.sendMessage('Testing Floor Tiles PDF (12.73 MB)...');
         await sendCatalog(chat, 'floor');
+        return;
+    }
+
+    // Test different sizes
+    if (message.body.toLowerCase() === '!test1mb') {
+        console.log('=== TESTING 1MB PDF ===');
+        await chat.sendMessage('Testing 1MB PDF...');
+        const media = MessageMedia.fromFilePath('./catalogs/test-1mb.pdf');
+        try {
+            await chat.sendMessage(media);
+            await chat.sendMessage('✅ 1MB PDF sent successfully!');
+        } catch (e) {
+            await chat.sendMessage('❌ 1MB PDF failed: ' + e.message);
+        }
+        return;
+    }
+
+    if (message.body.toLowerCase() === '!test2mb') {
+        console.log('=== TESTING 2MB PDF ===');
+        await chat.sendMessage('Testing 2MB PDF...');
+        const media = MessageMedia.fromFilePath('./catalogs/test-2mb.pdf');
+        try {
+            await chat.sendMessage(media);
+            await chat.sendMessage('✅ 2MB PDF sent successfully!');
+        } catch (e) {
+            await chat.sendMessage('❌ 2MB PDF failed: ' + e.message);
+        }
+        return;
+    }
+
+    if (message.body.toLowerCase() === '!test5mb') {
+        console.log('=== TESTING 5MB PDF ===');
+        await chat.sendMessage('Testing 5MB PDF...');
+        const media = MessageMedia.fromFilePath('./catalogs/test-5mb.pdf');
+        try {
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('Timeout after 20 seconds')), 20000);
+            });
+            await Promise.race([
+                chat.sendMessage(media),
+                timeoutPromise
+            ]);
+            await chat.sendMessage('✅ 5MB PDF sent successfully!');
+        } catch (e) {
+            await chat.sendMessage('❌ 5MB PDF failed: ' + e.message);
+        }
         return;
     }
 

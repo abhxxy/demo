@@ -88,7 +88,7 @@ function getUserSession(userId) {
 }
 
 function isGreeting(text) {
-    const greetings = ['hi', 'hello', 'hey', 'namaste', 'start'];
+    const greetings = ['hi', 'hello', 'hey'];
     return greetings.includes(text.toLowerCase().trim());
 }
 
@@ -531,8 +531,14 @@ client.on('message', async (message) => {
     try {
         switch (session.step) {
             case FLOW_STEPS.GREETING:
-                console.log(`-> Calling handleGreeting`);
-                await handleGreeting(chat, session);
+                // Only respond if it's actually a greeting
+                if (isGreeting(message.body)) {
+                    console.log(`-> Calling handleGreeting`);
+                    await handleGreeting(chat, session);
+                } else {
+                    console.log(`Ignoring non-greeting message: "${message.body}"`);
+                    return;
+                }
                 break;
             case FLOW_STEPS.PRODUCT_SELECTION:
                 console.log(`-> Calling handleProductSelection`);

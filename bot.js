@@ -88,8 +88,12 @@ function getUserSession(userId) {
 }
 
 function isGreeting(text) {
+    // ONLY these exact words, nothing else
     const greetings = ['hi', 'hello', 'hey'];
-    return greetings.includes(text.toLowerCase().trim());
+    const cleanedText = text.toLowerCase().trim();
+
+    // Must be EXACTLY one of these words, no extra characters
+    return greetings.includes(cleanedText) && cleanedText.length <= 5;
 }
 
 function isCancel(text) {
@@ -423,6 +427,17 @@ client.on('message', async (message) => {
     if (message.from.includes('@g.us')) return;
 
     const chat = await message.getChat();
+
+    // Check if this is a greeting FIRST
+    const isGreetingMessage = isGreeting(message.body);
+
+    // Only get/create session if it's a greeting OR user already has an active session
+    if (!sessions.has(message.from) && !isGreetingMessage) {
+        // No existing session and not a greeting - ignore completely
+        console.log(`Ignoring message from ${message.from}: "${message.body}" (not a greeting)`);
+        return;
+    }
+
     const session = getUserSession(message.from);
 
     const timeSinceLastActivity = Date.now() - session.lastActivity;
